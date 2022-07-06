@@ -1,28 +1,47 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-  </div>
+  <v-app>
+    <app-header/>
+    <app-table/>
+    <app-calculator/>
+    <v-dialog
+      v-model="visible"
+      width='70%'
+      persistent
+    >
+      <app-product-list/>
+    </v-dialog>
+  </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import appHeader from './components/appHeader';
+import appTable from './components/appTable';
+import appCalculator from './components/appCalculator';
+import appProductList from './components/appProductList';
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
-  }
-}
-</script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+  components: {
+    appHeader,
+    appTable,
+    appCalculator,
+    appProductList
+  },
+
+  data(){
+    return{
+
+    }
+  },
+  computed:{
+    visible(){return this.$store.getters.GET_SHOW_PRODUCT_LIST}
+  },
+  mounted(){
+    this.$store.dispatch('GET_MAIN_TABLE_HEADERS');
+    this.$store.dispatch('GET_PRODUCTS_ROWS_AND_DEAL_DATA');
+    this.$store.dispatch('GET_PRODUCTS_TREE');
+    this.$store.dispatch('GET_PRODUCTS_HEADERS');
+  }
+};
+</script>
