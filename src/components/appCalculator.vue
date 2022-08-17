@@ -5,17 +5,19 @@
         <v-switch
           label="НДС"
           v-model="isNds"
+          class="mt-1"
         ></v-switch>
       </v-col>
       <v-col cols='1' class="pa-0 pr-6">
-        <v-text-field
+        <v-select
           dense
           outlined
           suffix='%'
           v-model="nds"
+          :items="[6, 20]"
           type='number'
           min='0'
-        ></v-text-field>
+        ></v-select>
       </v-col>
     </v-row>
     <v-row justify='end'>
@@ -59,13 +61,17 @@
         <v-btn @click="save()" v-if="needSave" color='#bbed21'>Сохранить</v-btn>
       </v-col>
       <v-col style="text-align: end;" class="pr-6">
-        <v-btn color='#3bc8f5' dark class="mr-3">согласовать с руководителем</v-btn>
-        <v-btn color='#3bc8f5' title="title" :dark='!avaliable' :disabled='avaliable'>сформировать кп</v-btn>
-      </v-col>
-    </v-row>
-    <v-row justify='end' class="pr-6">
-      <v-col cols='3'>
-        <p v-if="avaliable" style="color:red; text-align: end;">Расчетная рентабельность меньше допустимой. Согласуйте с руководителем, прежде чем сформировать КП</p>
+        <v-btn color='#3bc8f5' dark class="mr-3" @click="startWF()">согласовать с руководителем</v-btn>
+
+        <v-tooltip left :disabled="!avaliable" color="error">
+          <template v-slot:activator="{on}">
+            <div v-on="on" class="d-inline-block">
+              <v-btn color='#3bc8f5' :dark='!avaliable' :disabled='avaliable' @click="genDoc()">сформировать кп</v-btn>
+            </div>
+          </template>
+          <span>Расчетная рентабельность меньше допустимой. Согласуйте с руководителем, прежде чем сформировать КП</span>
+        </v-tooltip>
+        
       </v-col>
     </v-row>
   </div>
@@ -82,6 +88,21 @@
     methods:{
       save(){
         this.$store.dispatch('SAVE_DATA');
+      },
+      genDoc(){
+        this.$store.dispatch('GENERATE_DOC');
+      },
+      startWF(){
+        let options = {};
+        if(this.$root.placement.placement == 'CRM_QUOTE_DETAIL_TAB'){
+          options = {id: this.$root.placement.options.ID, type: 'Q'}
+        } else if(this.$root.placement.placement == 'CRM_DEAL_DETAIL_TAB'){
+          options = {id: this.$root.placement.options.ID, type: 'D'}
+        }else{
+          console.log('error');
+          return;
+        }
+        BX24.callMethod('mws.workFlow.start', options);
       }
     },
     computed:{
@@ -101,7 +122,8 @@
         return this.$store.getters.GET_CALCULATED_VALUES;
       },
       avaliable(){
-        return this.strings.rentPerc <= 20;
+        if(this.$store.getters.GET_APPROVED == 1) return false;
+        return this.strings.rentPerc <= 20
       },
       needSave:{
         get(){return this.$store.getters.GET_NEED_SAVE},

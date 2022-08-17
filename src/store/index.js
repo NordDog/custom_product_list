@@ -25,9 +25,14 @@ export default new Vuex.Store({
     },
     SET_PRODUCTS_ROWS(state, value){
       state.rows = value;
+      this.commit('RECALC_LOG_AND_AUC')
+      this.commit('RECOUNT_CALCULATOR')
     },
     SET_DEAL_DATA(state, value){
+      value.IS_NDS = value.IS_NDS==0?false:true;
       state.dealFields = value;
+      this.commit('RECALC_LOG_AND_AUC')
+      this.commit('RECOUNT_CALCULATOR')
     },
     SET_PRODUCTS_TREE(state, value){
       state.productsTree = value;
@@ -49,6 +54,7 @@ export default new Vuex.Store({
       if(!state.rows[state.rows.length -1].ROW_PRODUCT_NAME){
         state.rows[state.rows.length -1].ROW_PRODUCT_NAME = value.ROW_PRODUCT_NAME;
         state.rows[state.rows.length -1].ROW_PRODUCT_ID = value.ROW_PRODUCT_ID;
+        state.rows[state.rows.length -1].ROW_QUANTITY = 1;
         if(value.newProd) state.rows[state.rows.length -1].newProd = true;
       } else {
 
@@ -73,6 +79,7 @@ export default new Vuex.Store({
           IMAGE: [],
           LOGISTIC: 0,
           NEED_COUNT: 0,
+          NEED_COUNT_OLD: 0,
           OVERPRICE: 0,
           PURCH_PRICE: 0,
           ROW_DISCOUNT_SUM:  0,
@@ -84,7 +91,7 @@ export default new Vuex.Store({
           ROW_PRICE_NETTO: 0,
           ROW_PRODUCT_ID: 0,
           ROW_PRODUCT_NAME: '',
-          ROW_QUANTITY: 0,
+          ROW_QUANTITY: 1,
           ROW_SORT: 0,
           RRC: 0,
         }];
@@ -109,8 +116,14 @@ export default new Vuex.Store({
     },
     UPDATE_ROW(state, value){
       let tempRow = state.rows.find(item=>item.ID_ROW === value.ID_ROW)
-      tempRow = value;
-      this.commit('RECALC_LOG_AND_AUC')
+      if(tempRow.NEED_COUNT_OLD != value.NEED_COUNT){
+        value.NEED_COUNT_OLD = value.NEED_COUNT;
+        tempRow = value;
+        if(value.NEED_COUNT) this.commit('RECALC_LOG_AND_AUC')
+      } else {
+        tempRow = value;
+      }
+      this.commit('RECOUNT_CALCULATOR')
     },
     RECALC_LOG_AND_AUC(state){
       let total = 0;
@@ -123,6 +136,8 @@ export default new Vuex.Store({
         if(row.NEED_COUNT){
           row.LOGISTIC = (state.dealFields.TOTAL_LOGISTIC / total * row.ROW_QUANTITY).toFixed(2);
           row.AUCTION = (state.dealFields.TOTAL_AUCTION/total*row.ROW_QUANTITY).toFixed(2);
+          let rawSum = +row.ROW_QUANTITY * (+row.PURCH_PRICE + +row.OVERPRICE + +row.LOGISTIC + +row.AUCTION);
+          row.ROW_PRICE = (rawSum - (rawSum / 100 * row.ROW_DISCOUNT_SUM)).toFixed(2);
         }
       }
       this.commit('RECOUNT_CALCULATOR')
@@ -133,16 +148,31 @@ export default new Vuex.Store({
       state.calculatedValues.discSum = 0;
       state.calculatedValues.rentPerc = 0;
 
+      let allMarkup = 0,
+      selfPrice = 0;
+
       for(let row of state.rows){
+
+        if(!row.ROW_QUANTITY || !row.PURCH_PRICE) continue;
+
+        allMarkup += Number((row.ROW_QUANTITY * row.OVERPRICE) - (+row.ROW_QUANTITY * (+row.PURCH_PRICE + +row.OVERPRICE + +row.LOGISTIC + +row.AUCTION))/ 100 * +row.ROW_DISCOUNT_SUM);
+        selfPrice += Number((+row.ROW_QUANTITY * +row.PURCH_PRICE) + +row.LOGISTIC + +row.AUCTION);
+
         state.calculatedValues.purchSum += +row.ROW_QUANTITY * +row.PURCH_PRICE;
         state.calculatedValues.sellSum += +row.ROW_PRICE;
         state.calculatedValues.discSum += +((+row.ROW_QUANTITY * (+row.PURCH_PRICE + +row.OVERPRICE + +row.LOGISTIC + +row.AUCTION))/ 100 * +row.ROW_DISCOUNT_SUM).toFixed(2);
       }
-      state.calculatedValues.rentPerc = (((state.calculatedValues.sellSum - state.calculatedValues.purchSum) / state.calculatedValues.sellSum) * 100).toFixed(2);
+
+      if(state.dealFields.IS_NDS && state.dealFields.NDS){
+        state.calculatedValues.sellSum += state.calculatedValues.sellSum / 100 * state.dealFields.NDS;
+      }
+
+      //state.calculatedValues.rentPerc = (((state.calculatedValues.sellSum - state.calculatedValues.purchSum) / state.calculatedValues.sellSum) * 100).toFixed(2);
+      state.calculatedValues.rentPerc = ((allMarkup / selfPrice) * 100).toFixed(2) | 0;
     },
     SET_NEED_SAVE(state, value){
       state.needSave = value;
-    }
+    },
   },
   actions:{
     GET_MAIN_TABLE_HEADERS({commit}){
@@ -151,10 +181,18 @@ export default new Vuex.Store({
       });
     },
     GET_PRODUCTS_ROWS_AND_DEAL_DATA({commit}){
-      BX24.callMethod('mws.productrows.get', {entity_type: 'D', id: 7}, res=>{
-        commit('SET_PRODUCTS_ROWS', res.data().rows);
-        commit('SET_DEAL_DATA', res.data().data);
-      })
+      let options = {};
+      if(this.$app.placement.placement == 'CRM_DEAL_DETAIL_TAB'){
+        options = {entity_type: 'D', id: this.$app.placement.options.ID};
+      } else if (this.$app.placement.placement == 'CRM_QUOTE_DETAIL_TAB') {
+        options = {entity_type: 'Q', id: this.$app.placement.options.ID};
+      }
+      if(Object.keys(options).length){
+        BX24.callMethod('mws.productrows.get', options, res=>{
+          commit('SET_PRODUCTS_ROWS', res.data().rows);
+          commit('SET_DEAL_DATA', res.data().data);
+        })
+      }
     },
     GET_PRODUCTS_TREE({commit}){
       BX24.callMethod('mws.productsections.gettree', {}, res=>{
@@ -187,10 +225,12 @@ export default new Vuex.Store({
     },
     SET_IS_NDS({commit}, value){
       commit('SET_IS_NDS', value);
+      commit('RECOUNT_CALCULATOR');
       commit('SET_NEED_SAVE', true);
     },
     SET_NDS({commit}, value){
       commit('SET_NDS', value);
+      commit('RECOUNT_CALCULATOR');
       commit('SET_NEED_SAVE', true);
     },
     SET_NDS_PURPOSE({commit}, value){
@@ -211,6 +251,7 @@ export default new Vuex.Store({
             IMAGE: [],
             LOGISTIC: 0,
             NEED_COUNT: 0,
+            NEED_COUNT_OLD: 0,
             OVERPRICE: 0,
             PURCH_PRICE: 0,
             ROW_DISCOUNT_SUM:  0,
@@ -234,22 +275,65 @@ export default new Vuex.Store({
     SET_NEED_SAVE({commit}, value){
       commit('SET_NEED_SAVE', value)
     },
-    SAVE_DATA({commit, state}){
-      let options = {
-        'id': 7,
-        'rows': state.rows,
-        'data': {
-          'UF_IS_NDS':state.dealFields.IS_NDS,
-          'UF_NDS':state.dealFields.NDS,
-          'UF_NDS_PURPOSE':state.dealFields.NDS_PURPOSE,
-          'UF_TOTAL_AUCTION':state.dealFields.TOTAL_AUCTION,
-          'UF_TOTAL_LOGISTIC':state.dealFields.TOTAL_LOGISTIC,
+    async SAVE_DATA({commit, state}){
+
+      for(let row of state.rows){
+        if(row.newFiles){
+          let proms = [];
+          for(let file of row.newFiles){
+            let reader = new FileReader();
+            proms.push(new Promise(resolve=>{
+              reader.onload = e=>{
+                resolve({base: e.target.result.split(',')[1], name: file.name})
+              }
+              reader.readAsDataURL(file)
+            }))
+          }
+          await Promise.all(proms).then(vals=>{
+            row.newFiles = vals;
+          })
         }
       }
+
+      let options = {
+        'id': this.$app.placement.options.ID,
+        'rows': state.rows,
+        'data': {
+          'UF_IS_NDS':         state.dealFields.IS_NDS?1:0,
+          'UF_NDS':            Number(state.dealFields.NDS),
+          'UF_NDS_PURPOSE':    state.dealFields.NDS_PURPOSE,
+          'UF_TOTAL_AUCTION':  state.dealFields.TOTAL_AUCTION,
+          'UF_TOTAL_LOGISTIC': state.dealFields.TOTAL_LOGISTIC,
+          'OPPORTUNITY':       state.calculatedValues.sellSum
+        }
+      }
+
+      if(this.$app.placement.placement == 'CRM_DEAL_DETAIL_TAB'){
+        options['entity_type'] = 'D';
+      } else if (this.$app.placement.placement == 'CRM_QUOTE_DETAIL_TAB') {
+        options['entity_type'] = 'Q';
+      }
+
       BX24.callMethod('mws.productrows.set', options, res=>{
-        console.log(res.data())
+        commit('SET_PRODUCTS_ROWS', []);
+        this.dispatch('GET_PRODUCTS_ROWS_AND_DEAL_DATA');
         commit('SET_NEED_SAVE', false);
       })
+    
+    },
+    async GENERATE_DOC({commit, dispatch}){//TODO: save before genDoc
+      await dispatch('SAVE_DATA');
+      let options = {};
+      if(this.$app.placement.placement == 'CRM_DEAL_DETAIL_TAB'){
+        options = {entity_type: 'D', id: this.$app.placement.options.ID};
+      } else if (this.$app.placement.placement == 'CRM_QUOTE_DETAIL_TAB') {
+        options = {entity_type: 'Q', id: this.$app.placement.options.ID};
+      }
+      if(Object.keys(options).length){
+        BX24.callMethod('mws.document.generate', options, res=>{
+          console.log(res.data())
+        })
+      }
     }
   },
   getters: {
@@ -288,6 +372,9 @@ export default new Vuex.Store({
     },
     GET_NEED_SAVE(state){
       return state.needSave;
+    },
+    GET_APPROVED(state){
+      return state.dealFields.APPROVED
     }
   }
 })

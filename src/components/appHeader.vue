@@ -8,6 +8,7 @@
       <v-text-field
         dense
         outlined
+        min='0'
         label="Затраты на логистику"
         suffix="₽"
         class="mr-3"
@@ -18,6 +19,7 @@
       <v-text-field
         dense
         outlined
+        min='0'
         suffix="₽"
         label="затраты на аукцион"
         type='number'
@@ -76,6 +78,7 @@
           IMAGE: [],
           LOGISTIC: 0,
           NEED_COUNT: 0,
+          NEED_COUNT_OLD: 0,
           OVERPRICE: 0,
           PURCH_PRICE: 0,
           ROW_DISCOUNT_SUM:  0,

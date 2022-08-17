@@ -12,6 +12,7 @@
       
       <template v-slot:item.ROW_PRODUCT_NAME="{item}">
         <v-autocomplete
+          style="min-width:350px"
           class="my-3"
           hide-details
           dense
@@ -33,7 +34,7 @@
             </div>
           </template>
           <template v-slot:append-outer>
-            <v-btn v-if="item.ROW_PRODUCT_ID > 0" style="margin-top: -7px;" icon><v-icon>mdi-arrow-right</v-icon></v-btn>
+            <v-btn v-if="item.ROW_PRODUCT_ID > 0" style="margin-top: -7px;" icon @click="goto(item.ROW_PRODUCT_ID)"><v-icon>mdi-arrow-right</v-icon></v-btn>
           </template>
           <template v-slot:prepend-inner>
             <v-icon color='#3bc8f5' v-if="item.newProd">mdi-new-box</v-icon>
@@ -58,12 +59,15 @@
           type='number'
           suffix='шт'
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'quantity_'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.PURCH_PRICE="{item}">
         <v-text-field
+          style="min-width:100px"
           class="my-3"
           hide-details
           dense
@@ -72,12 +76,16 @@
           type='number'
           suffix="₽"
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'purchPrice_'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.RRC="{item}">
         <v-text-field
+          style="min-width:80px"
+          readonly
           class="my-3"
           hide-details
           dense
@@ -86,12 +94,15 @@
           type='number'
           suffix="₽"
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'rrc_'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.OVERPRICE="{item}">
         <v-text-field
+          style="min-width:100px"
           class="my-3"
           hide-details
           dense
@@ -100,12 +111,15 @@
           type='number'
           suffix="₽"
           placeholder='0'
-          @input="calculater(item)"
+          @keydown="autowidth($event)"
+          @input="calculater(item, true)"
           min='0'
+          :ref="'overprice'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.LOGISTIC="{item}">
         <v-text-field
+          style="min-width:80px"
           class="my-3"
           hide-details
           dense
@@ -114,12 +128,15 @@
           type='number'
           suffix="₽"
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'logistic'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.AUCTION="{item}">
         <v-text-field
+          style="min-width:80px"
           class="my-3"
           hide-details
           dense
@@ -128,12 +145,15 @@
           type='number'
           suffix="₽"
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'auction_'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.ROW_DISCOUNT_SUM="{item}">
         <v-text-field
+          style="min-width:80px"
           class="my-3"
           hide-details
           dense
@@ -142,14 +162,16 @@
           type='number'
           suffix='%'
           placeholder='0'
+          @keydown="autowidth($event)"
           @input="calculater(item)"
           min='0'
+          :ref="'discount_'+item.ID_ROW"
         ></v-text-field>
       </template>
       <template v-slot:item.NEED_COUNT="{item}">
         <v-switch
           v-model="item.NEED_COUNT"
-          @change="()=>{calculater(item), update(item)}"
+          @change="calculater(item)"
         ></v-switch>
       </template>
       <template v-slot:item.delete="{item}">
@@ -167,6 +189,7 @@
               <v-textarea 
                 dense 
                 outlined
+                @input='update(item)'
                 v-model="item.DESCRIPTION_AREA"
               ></v-textarea>
             </v-col>
@@ -179,17 +202,21 @@
                 prepend-icon=""
                 v-model="item.newFiles"
                 ref="fileinput"
+                @change='update(item)'
               ></v-file-input>
               <v-btn color='#3bc8f5' dark @click="addFile">Добавить избражение</v-btn>
-              <p class='pa-0 ma-0' v-for="(item, index) in item.OLD_IMGS" :key="index">
-                <a :href="'https://crm.ms-sibir.com/'+item.link" target="_blank">{{item.name}}</a>
+              <p class='pa-0 ma-0' v-for="(file, index) in item.OLD_IMGS" :key="file.fid">
+                <a :href="'https://crm.ms-sibir.com/'+file.link" target="_blank">{{file.name}}</a>
+                <v-btn icon small @click="delOldImg(item, file.fid)">
+                  <v-icon>mdi-delete-forever-outline</v-icon>
+                </v-btn>
               </p>
               <p class='pa-0 ma-0' v-for="(item, index) in item.PROD_IMGS" :key="index">
                 <a :href="'https://crm.ms-sibir.com/'+item.link" target="_blank">{{item.name}}</a>
               </p>
-              <div class='pa-0 ma-0' v-for="(item, index) in item.newFiles" :key="index">
-                {{item.name}}
-                <v-btn icon small>
+              <div class='pa-0 ma-0' v-for="(file, index) in item.newFiles" :key="index">
+                {{file.name}}
+                <v-btn icon small @click="delImg(item, file.name)">
                   <v-icon>mdi-delete-forever-outline</v-icon>
                 </v-btn>
               </div>
@@ -234,11 +261,41 @@
       delRow(id){
         this.$store.dispatch('DELETE_ROW', id);
       },
-      calculater(item){
+      calculater(item, isoverprice = false){
+
+        let oldSum = item.ROW_PRICE;
+
+        if(!isoverprice) item.OVERPRICE = (+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION)/2;
+
+        item.RRC = (+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION) * 1.5;
+
+        item.XPRICE = +item.PURCH_PRICE + +item.OVERPRICE + +item.LOGISTIC + +item.AUCTION;
+
         let rawSum = +item.ROW_QUANTITY * (+item.PURCH_PRICE + +item.OVERPRICE + +item.LOGISTIC + +item.AUCTION);
         item.ROW_PRICE = (rawSum - (rawSum / 100 * item.ROW_DISCOUNT_SUM)).toFixed(2);
 
-        this.$store.dispatch('UPDATE_ROW', item);
+        if(+oldSum != +item.ROW_PRICE) this.$store.dispatch('UPDATE_ROW', item);
+
+        let calcwidth = 80, $ref;
+
+        for(let field in this.$refs){//возможно явно отседова забирать ррц и проч поля
+
+          if(!this.$refs[field]) continue;
+
+          if(field.includes(item.ID_ROW) && !field.includes('nameinput')){
+            if(field.includes('rrc')){ //rrcfield width
+              calcwidth = String(item.RRC).length ? String(item.RRC).length * 9 + 80 : 80;
+            }
+            else if(field.includes('overprice') && !isoverprice){//overpricefield width
+              calcwidth = String(item.OVERPRICE).length ? String(item.OVERPRICE).length * 9 + 80 : 80;
+            } else {
+              calcwidth = this.$refs[field].value ? String(this.$refs[field].value).length * 9 + 80 : 80;
+            }
+            $ref = this.$refs[field];
+            $ref.$el.style.width = calcwidth+'px';
+          }
+        }
+
       },
       createNewProduct(item){
         this.$refs['nameinput_'+item.ID_ROW].blur();
@@ -255,7 +312,12 @@
         this.$store.dispatch('CREATE_NEW_PRODUCT', newProd);
       },
       goto(productid){
-        //TODO: открытие шторки товара
+        BX24.callMethod('mws.product.show', {
+          entity_type: this.$root.placement.placement == 'CRM_DEAL_DETAIL_TAB' ? 'D' : 'Q', 
+          entity_id: this.$root.placement.options.ID, 
+          prodId: productid
+          }
+        );
       },
       getProds: debounce(function (e){
         if(!e.search) {
@@ -302,7 +364,21 @@
       },
       update(item){
         this.$store.dispatch('UPDATE_ROW', item);
-      }
+      },
+      delImg(item, fname){
+        item.newFiles = item.newFiles.filter(item=>item.name != fname);
+        this.$store.dispatch('UPDATE_ROW', item);
+      },
+      delOldImg(item, fId){
+        item.OLD_IMGS = item.OLD_IMGS.filter(item=>item.fid != fId);
+        item.IMAGE = item.IMAGE.filter(item=>item != fId);
+        this.$store.dispatch('UPDATE_ROW', item);
+      },
+      //повесить на все поля, запускать в цикле при открытии страницы
+      autowidth(ev){
+        let calcWidth = ev.target.value.length > 0 ? ev.target.value.length * 9 + 80 : 80;
+        ev.target.parentNode.parentNode.parentNode.parentNode.style.width = calcWidth+'px';
+      },
     },
     computed:{
       headers:{
@@ -313,6 +389,9 @@
         get(){
           let rows = this.$store.getters.GET_PRODUCTS_ROWS;
           this.setCurrNames(rows);
+          for(let row of rows){
+            this.calculater(row, true);
+          }
           return rows;
         },
       }
