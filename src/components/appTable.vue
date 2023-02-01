@@ -263,15 +263,17 @@
       },
       calculater(item, isoverprice = false){
 
+        this.numerator(item);
+
         let oldSum = item.ROW_PRICE;
 
-        if(!isoverprice) item.OVERPRICE = (+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION)/2;
+        if(!isoverprice) item.OVERPRICE = ((+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION)/2).toFixed(2);
 
-        item.RRC = (+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION) * 1.5;
+        item.RRC = ((+item.PURCH_PRICE + +item.LOGISTIC + +item.AUCTION) * 1.5).toFixed(2);
 
         item.XPRICE = +item.PURCH_PRICE + +item.OVERPRICE + +item.LOGISTIC + +item.AUCTION;
 
-        let rawSum = +item.ROW_QUANTITY * (+item.PURCH_PRICE + +item.OVERPRICE + +item.LOGISTIC + +item.AUCTION);
+        let rawSum = (+item.ROW_QUANTITY * (+item.PURCH_PRICE + +item.OVERPRICE + +item.LOGISTIC + +item.AUCTION)).toFixed(2);
         item.ROW_PRICE = (rawSum - (rawSum / 100 * item.ROW_DISCOUNT_SUM)).toFixed(2);
 
         if(+oldSum != +item.ROW_PRICE) this.$store.dispatch('UPDATE_ROW', item);
@@ -379,6 +381,19 @@
         let calcWidth = ev.target.value.length > 0 ? ev.target.value.length * 9 + 80 : 80;
         ev.target.parentNode.parentNode.parentNode.parentNode.style.width = calcWidth+'px';
       },
+      numerator(item){
+        item.AUCTION = Number(item.AUCTION);
+        item.LOGISTIC = Number(item.LOGISTIC);
+        item.OVERPRICE = Number(item.OVERPRICE);
+        item.PURCH_PRICE = Number(item.PURCH_PRICE);
+        item.ROW_DISCOUNT_SUM = Number(item.ROW_DISCOUNT_SUM);
+        item.ROW_PRICE = Number(item.ROW_PRICE);
+        item.ROW_PRICE_ACCOUNT = Number(item.ROW_PRICE_ACCOUNT);
+        item.ROW_PRICE_BRUTTO = Number(item.ROW_PRICE_BRUTTO);
+        item.ROW_PRICE_EXCLUSIVE = Number(item.ROW_PRICE_EXCLUSIVE);
+        item.ROW_PRICE_NETTO = Number(item.ROW_PRICE_NETTO);
+        item.ROW_QUANTITY = Number(item.ROW_QUANTITY);
+      }
     },
     computed:{
       headers:{

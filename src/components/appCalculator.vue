@@ -14,7 +14,7 @@
           outlined
           suffix='%'
           v-model="nds"
-          :items="[6, 20]"
+          :items="[20]"
           type='number'
           min='0'
         ></v-select>

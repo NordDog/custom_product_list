@@ -164,9 +164,9 @@ export default new Vuex.Store({
       }
 
       if(state.dealFields.IS_NDS && state.dealFields.NDS){
-        state.calculatedValues.sellSum += state.calculatedValues.sellSum / 100 * state.dealFields.NDS;
+        state.calculatedValues.sellSum += +(state.calculatedValues.sellSum / 100 * state.dealFields.NDS).toFixed(2);
       }
-
+      state.calculatedValues.sellSum = +(state.calculatedValues.sellSum).toFixed(2)
       //state.calculatedValues.rentPerc = (((state.calculatedValues.sellSum - state.calculatedValues.purchSum) / state.calculatedValues.sellSum) * 100).toFixed(2);
       state.calculatedValues.rentPerc = ((allMarkup / selfPrice) * 100).toFixed(2) | 0;
     },
@@ -277,7 +277,10 @@ export default new Vuex.Store({
     },
     async SAVE_DATA({commit, state}){
 
+      let sumOfNDS = 0, rowsSum = 0;
+
       for(let row of state.rows){
+        rowsSum = (+rowsSum + +row.ROW_PRICE).toFixed(2);
         if(row.newFiles){
           let proms = [];
           for(let file of row.newFiles){
@@ -295,6 +298,10 @@ export default new Vuex.Store({
         }
       }
 
+      if(state.dealFields.IS_NDS){
+        sumOfNDS = (+rowsSum / 100 * Number(state.dealFields.NDS)).toFixed(2);
+      }
+
       let options = {
         'id': this.$app.placement.options.ID,
         'rows': state.rows,
@@ -304,7 +311,10 @@ export default new Vuex.Store({
           'UF_NDS_PURPOSE':    state.dealFields.NDS_PURPOSE,
           'UF_TOTAL_AUCTION':  state.dealFields.TOTAL_AUCTION,
           'UF_TOTAL_LOGISTIC': state.dealFields.TOTAL_LOGISTIC,
-          'OPPORTUNITY':       state.calculatedValues.sellSum
+          'OPPORTUNITY':       state.calculatedValues.sellSum,
+
+          'UF_ROWS_SUM':       rowsSum,
+          'UF_SUM_OF_NDS':     sumOfNDS,
         }
       }
 
@@ -331,7 +341,7 @@ export default new Vuex.Store({
       }
       if(Object.keys(options).length){
         BX24.callMethod('mws.document.generate', options, res=>{
-          console.log(res.data())
+          
         })
       }
     }
