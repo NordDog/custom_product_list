@@ -185,13 +185,28 @@
         BX24.callMethod('mws.products.list', options, res=>{
           this.products = res.data().rows;
           this.total = res.answer.total;
+
+          /** снимаем выделение строк с таблицы, т.к. vuetify при обновлении данных не пересоздаёт ноды строк,
+          соответственно класс row-selected остаётся и строка остаётся подсвеченной */
+          if (window.selectedProductRows.length > 0) {
+            window.selectedProductRows.forEach(element => element.classList.remove('row-selected'));
+          }
         })
       },
       addProduct(event, row){
+        let tableRow = event.target?.closest('tr');
+      
+        if (tableRow) {
+          tableRow.classList?.add('row-selected')
+          window.selectedProductRows.push(tableRow)
+        }
 
         let newRow = {
           AUCTION: 0,
           DESCRIPTION_AREA: row.item.DESCRIPTION,
+          PROD_ARTIKUL_U3YN9N: row.item.ART,
+          PROD_DPLER_NAME: row.item['%DPLER'],
+          PROD_OBEM_KIOLLV: row.item.OBEM_KIOLLV,
           ID_ROW: 0,
           PROD_IMGS: row.item.FILES,
           LOGISTIC: 0,
@@ -220,12 +235,16 @@
         window.open(url);
       }
     },
+    beforeCreate() {
+      window.selectedProductRows = []
+    },
     mounted(){
       this.tree = this.$store.getters.GET_PRODUCTS_TREE;
       this.headers = this.$store.getters.GET_PRODUCTS_HEADERS;
     }
   }
 </script>
+
 <style>
 .productlistheader{
   display: flex;
@@ -252,5 +271,8 @@
 }
 .mws-headers{
   vertical-align: baseline !important;
+}
+.div-table tr.row-selected {
+  background: #beffa9;
 }
 </style>

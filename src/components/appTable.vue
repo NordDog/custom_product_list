@@ -9,37 +9,107 @@
       single-expand
       :expanded.sync="expanded"
     >
-      
+       <template v-slot:item.PROD_ARTIKUL_U3YN9N="{item}">
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              class="my-3"
+              style="min-width:120px; max-width: 120px;"
+              hide-details
+              v-on="on"
+              v-bind="attrs"
+              dense
+              outlined
+              v-model="item.PROD_ARTIKUL_U3YN9N"
+              readonly
+              :ref="'atrticul_'+item.ID_ROW"
+            />
+          </template>
+          
+          <div style="max-width: 500px">{{item.PROD_ARTIKUL_U3YN9N}}</div>
+        </v-tooltip>
+      </template>
+
+      <template v-slot:item.PROD_DPLER_NAME="{item}">
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+                class="my-3"
+                style="max-width:80px"
+                v-on="on"
+                v-bind="attrs"
+                hide-details
+                dense
+                outlined
+                readonly
+                v-model="item.PROD_DPLER_NAME"
+                :ref="'dployer_name_'+item.ID_ROW"
+            />
+          </template>
+          
+          <div style="max-width: 500px">{{item.PROD_DPLER_NAME}}</div>
+        </v-tooltip>
+      </template>
+
       <template v-slot:item.ROW_PRODUCT_NAME="{item}">
-        <v-autocomplete
-          style="min-width:350px"
-          class="my-3"
-          hide-details
-          dense
-          outlined
-          v-model="item.ROW_PRODUCT_NAME"
-          placeholder='Наименование товара'
-          :search-input.sync="item.search"
-          :items='products'
-          item-text='NAME'
-          item-value='NAME'
-          @change="update(item)"
-          @update:search-input='()=>{getProds(item), setName2arr(item)}'
-          :ref="'nameinput_'+item.ID_ROW"
-        >
-          <template v-slot:append-item>
-            <div v-if='showAdder' class="createItem" @click="createNewProduct(item)">
-              <v-icon color='#3bc8f5'>mdi-plus-circle</v-icon>
-              <span>Создать</span>
-            </div>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-autocomplete
+              style="min-width:350px"
+              class="my-3"
+              hide-details
+              dense
+              v-on="on"
+              v-bind="attrs"
+              outlined
+              v-model="item.ROW_PRODUCT_NAME"
+              placeholder='Наименование товара'
+              :search-input.sync="item.search"
+              :items='products'
+              item-text='NAME'
+              item-value='NAME'
+              @change="update(item)"
+              @update:search-input='()=>{getProds(item), setName2arr(item)}'
+              :ref="'nameinput_'+item.ID_ROW"
+            >
+              <template v-slot:append-item>
+                <div v-if='showAdder' class="createItem" @click="createNewProduct(item)">
+                  <v-icon color='#3bc8f5'>mdi-plus-circle</v-icon>
+                  <span>Создать</span>
+                </div>
+              </template>
+              <template v-slot:append-outer>
+                <v-btn v-if="item.ROW_PRODUCT_ID > 0" style="margin-top: -7px;" icon @click="goto(item.ROW_PRODUCT_ID)"><v-icon>mdi-arrow-right</v-icon></v-btn>
+              </template>
+              <template v-slot:prepend-inner>
+                <v-icon color='#3bc8f5' v-if="item.newProd">mdi-new-box</v-icon>
+              </template>
+            </v-autocomplete>
           </template>
-          <template v-slot:append-outer>
-            <v-btn v-if="item.ROW_PRODUCT_ID > 0" style="margin-top: -7px;" icon @click="goto(item.ROW_PRODUCT_ID)"><v-icon>mdi-arrow-right</v-icon></v-btn>
+          
+          <div style="max-width: 500px">{{item.ROW_PRODUCT_NAME}}</div>
+        </v-tooltip>
+      </template>
+
+      <template v-slot:item.PROD_OBEM_KIOLLV="{item}">
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+                class="my-3"
+                style="max-width:80px"
+                v-on="on"
+                v-bind="attrs"
+                hide-details
+                dense
+                outlined
+                readonly
+                v-model="item.PROD_OBEM_KIOLLV"
+                :ref="'obem_kilov_'+item.ID_ROW"
+            />
           </template>
-          <template v-slot:prepend-inner>
-            <v-icon color='#3bc8f5' v-if="item.newProd">mdi-new-box</v-icon>
-          </template>
-        </v-autocomplete>
+
+          <div style="max-width: 500px">{{item.PROD_OBEM_KIOLLV}}</div>
+        </v-tooltip>
       </template>
 
       <template v-slot:item.data-table-expand="{item}">

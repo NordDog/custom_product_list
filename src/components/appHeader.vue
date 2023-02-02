@@ -1,7 +1,7 @@
 <template>
   <div class="app-header">
     <div>
-      <v-btn color='#3bc8f5' dark class="mr-3" @click="addPRow">Добавить товар</v-btn>
+      <!-- <v-btn color='#3bc8f5' dark class="mr-3" @click="addPRow">Добавить товар</v-btn> -->
       <v-btn outlined @click='showPList()'>Выбрать товар</v-btn>
     </div>
     <div style="display: flex">
