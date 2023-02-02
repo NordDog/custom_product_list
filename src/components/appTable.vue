@@ -6,6 +6,7 @@
       :items='rows'
       item-key='ID_ROW'
       :items-per-page="-1"
+      show-expand
       single-expand
       :expanded.sync="expanded"
     >
