@@ -5,7 +5,7 @@
       hide-default-footer
       :items='rows'
       item-key='ID_ROW'
-      show-expand
+      :items-per-page="-1"
       single-expand
       :expanded.sync="expanded"
     >
